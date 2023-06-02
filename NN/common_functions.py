@@ -15,7 +15,7 @@ def sigmoid(z):
 #relu function
 def relu(z):
 
-	zeros = np.zeros(len(z))
+	zeros = np.zeros(z.shape)
 	g = np.maximum(zeros,z)
 
 	return g
@@ -26,6 +26,11 @@ def softmax(z):
     
     return a
 
+def linear(z):  
+           
+    a = z
+    
+    return a
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Cost function for logistic regression with regularisation
 def cost_log(X, y, w, b, g, lambda_ = 0):
@@ -93,8 +98,8 @@ def gradient_descent(X, y, w_in, b_in, alpha, n, g, lambda_=0):
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Computes layer of NN, equivalent to Dense function in Tensorflow
 def my_dense(a_in, W, b, g):
-                                            
-	z = np.dot(np.transpose(W), a_in) + b
+                                        
+	z = np.dot(a_in,W) + b
 	
 	a_out = g(z)
          
