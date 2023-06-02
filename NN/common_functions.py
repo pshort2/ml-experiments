@@ -21,7 +21,7 @@ def relu(z)
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Cost function for logistic regression with regularisation
-def cost_log(X, y, w, b, lambda_ = 0, act = "sigmoid"):
+def cost_log(X, y, w, b, lambda_ = 0, activation = "sigmoid"):
 
     m = X.shape[0]
     z = np.dot(X,w) + b
@@ -42,7 +42,7 @@ def cost_log(X, y, w, b, lambda_ = 0, act = "sigmoid"):
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Calculate gradient with regularisation
-def gradient(X, y, w, b, lambda_=0, act="sigmoid"): 
+def gradient(X, y, w, b, lambda_=0, activation="sigmoid"): 
 
     m = X.shape[0]
     dj_dw = np.zeros((n,))                           
@@ -64,7 +64,7 @@ def gradient(X, y, w, b, lambda_=0, act="sigmoid"):
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Perform gradient descent with logistic regression
-def gradient_descent(X, y, w_in, b_in, alpha, n, lambda_=0): 
+def gradient_descent(X, y, w_in, b_in, alpha, n, lambda_=0, activation="sigmoid"): 
 
     J_history = []
     w = copy.deepcopy(w_in)  #avoid modifying global w within function
@@ -80,10 +80,24 @@ def gradient_descent(X, y, w_in, b_in, alpha, n, lambda_=0):
       
         # Save cost J at each iteration
         if i<100000:      # prevent resource exhaustion 
-            J_history.append(cost_log(X, y, w, b) )
+            J_history.append(cost_log(X, y, w, b, activation) )
 
         # Print cost every at intervals 10 times or as many iterations if < 10
         if i% math.ceil(n / 10) == 0:
             print(f"Iteration {i:4d}: Cost {J_history[-1]}   ")
         
     return w, b, J_history
+
+
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Computes layer of NN, equivalent to Dense function in Tensorflow
+def my_dense(a_in, W, b, activation="sigmoid"):
+                                            
+    z = np.dot(np.transpose(W), a_in) + b
+	
+	   if act == "sigmoid":
+    	a_out = sigmoid(z)
+	else if act == "relu":
+		a_out = relu(z) 
+         
+    return(a_out)
