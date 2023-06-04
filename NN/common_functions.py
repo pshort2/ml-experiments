@@ -20,17 +20,21 @@ def relu(z):
 
 	return g
 
+#relu derivative for back prop
+def relu_derivative(z):
+
+    dz[z <= 0] = 0
+    dz[z > 0] = 1
+
+    return dz
+
+#softmax function
 def softmax(z):  
            
     a = np.exp(z)/np.sum(np.exp(z))
     
     return a
 
-def linear(z):  
-           
-    a = z
-    
-    return a
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Cost function for logistic regression with regularisation
 def cost_log(X, y, w, b, g, lambda_ = 0):
@@ -104,3 +108,42 @@ def my_dense(a_in, W, b, g):
 	a_out = g(z)
          
 	return(a_out)
+
+
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Carries out forward propagation
+def forward_prop(x_train, params):
+
+	w1, b1, w2, b2, w3, b3 = params[0], params[1], params[2], params[3], params[4], params[5]
+
+    z1 = np.dot(w1, x_train) + b1
+    a1 = relu(z1)
+    
+	z2 = np.dot(w2, a1) + b2
+    a2 = relu(z2)
+
+	z3 = np.dot(w3, a2) + b3
+
+    return {"z1": z1, "a1": a1, "z2": z2, "a2": a2, "z3": z3, "a3": a3}
+
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Carries out backward propagation
+def backward_prop(x_train, y_train, activations, params):
+
+    m = X.shape[1]
+    a1, a2, a3 = activations["a1"], activations["a2"]
+    w3 = params[4]
+
+    dz3 = a3 - y_train #error in final layer
+    dw3 = np.dot(dz3, a2.T) / m #derivative of w3
+    db3 = np.sum(dz3, axis=1, keepdims=True) / m #derivative of b3, 'keepdims' keeps the dimensions of db3 the same as dz2
+
+    dz2 = np.dot(w3.T, dz3) * relu_derivative(a2)
+    dw2 = np.dot(dz2, a1.T) / m
+    db2 = np.sum(dz2, axis=1, keepdims=True) / m
+
+	dz1 = np.dot(w2.T, dz2) * relu_derivative(a2)
+    dw2 = np.dot(dz1, x_train.T) / m
+    db1 = np.sum(dz1, axis=1, keepdims=True) / m
+
+    return {"dw1": dw1, "db1": db1, "dw2": dw2, "db2": db2, "dw3": dw3, "db3": db3}
