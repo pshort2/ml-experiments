@@ -114,36 +114,78 @@ def my_dense(a_in, W, b, g):
 #Carries out forward propagation
 def forward_prop(x_train, params):
 
-	w1, b1, w2, b2, w3, b3 = params[0], params[1], params[2], params[3], params[4], params[5]
+	'''
+	arguments:
+	x_train - training data
+	params - dictionary of parameters W1 ... Wn and b1 ... bn (weights and biases)
 
-    z1 = np.dot(w1, x_train) + b1
-    a1 = relu(z1)
+	returns:
+	AL - output of final layer
+	outputs - list of outputs for each layer
+	'''
+
+	outputs = [] 
+	A = x_train 
+
+	L = len(params) // 2 #this is the number of layers of the NN (divided by 2 as the dictionary contains both weights and biases
+	
+	for l in range(1, L):
+
+		A_prev = A #Store the previous activation
+		W = params["W" + str(l)] #for the first layers calls W1, the second layer W2 etc...
+		b = params["b" + str(l)]
+
+		Z = np.dot(W, A_prev) + b
+		A = relu(Z) #use relu for all layers other than final
     
-	z2 = np.dot(w2, a1) + b2
-    a2 = relu(z2)
+		output = (A_prev, W, b, Z)
+		outputs.append(output)
 
-	z3 = np.dot(w3, a2) + b3
+	#For the final layer:
+	AL = np.dot(parameters['W' + str(L)], A) + parameters['b' + str(L)] #linear activation for final layer
+	output = (A, parameters['W' + str(L)], parameters['b' + str(L)], AL)
+	outputs.append(output)
 
-    return {"z1": z1, "a1": a1, "z2": z2, "a2": a2, "z3": z3, "a3": a3}
+	return AL, outputs
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Carries out backward propagation
-def backward_prop(x_train, y_train, activations, params):
+def backward_prop(AL, y_train, outputs):
 
-    m = X.shape[1]
-    a1, a2, a3 = activations["a1"], activations["a2"]
-    w3 = params[4]
+	'''
+	arguments:
+	AL - output of forward prop
+	y_train - training y data
 
-    dz3 = a3 - y_train #error in final layer
-    dw3 = np.dot(dz3, a2.T) / m #derivative of w3
-    db3 = np.sum(dz3, axis=1, keepdims=True) / m #derivative of b3, 'keepdims' keeps the dimensions of db3 the same as dz2
+	returns:
+	grads - dictionary of gradients
+	'''
 
-    dz2 = np.dot(w3.T, dz3) * relu_derivative(a2)
-    dw2 = np.dot(dz2, a1.T) / m
-    db2 = np.sum(dz2, axis=1, keepdims=True) / m
+	grads = {}
+	m = AL.shape[1] #this is the number of training samples
+	L = len(outputs) #this is the number of layers
 
-	dz1 = np.dot(w2.T, dz2) * relu_derivative(a2)
-    dw2 = np.dot(dz1, x_train.T) / m
-    db1 = np.sum(dz1, axis=1, keepdims=True) / m
+	#Initialisation of back prop
+	dAL = -(np.divide(Y, AL) - np.divide(1 - Y, 1 - AL))
 
-    return {"dw1": dw1, "db1": db1, "dw2": dw2, "db2": db2, "dw3": dw3, "db3": db3}
+	#Back prop for the final layer (linear activation)
+	dZL = dAL
+	A_prev, W, b, Z = outputs[L - 1]
+
+	grads['dW' + str(L)] = np.dot(dZL, A_prev.T) / m
+	grads['db' + str(L)] = np.sum(dZL, axis=1, keepdims=True) / m
+
+	dA_prev = np.dot(W.T, dZL)
+	
+	#Back prop for the oher layers
+	for l in reversed(range(L - 1)):
+
+		A_prev, W, b, Z = outputs[l]
+		dZ = relu_backward(dA_prev, Z)
+
+		grads['dW' + str(l + 1)] = np.dot(dZ, A_prev.T) / m
+		grads['db' + str(l + 1)] = np.sum(dZ, axis=1, keepdims=True) / m
+
+		dA_prev = np.dot(W.T, dZ)
+
+	return grads
