@@ -36,22 +36,16 @@ def softmax(z):
     return a
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#Cost function for logistic regression with regularisation
-def cost_log(X, y, w, b, g, lambda_ = 0):
+#Cost function for logistic regression (no regularisation yet)
+def cost_log(AL, y):
 
-	m = X.shape[0]
-	z = np.dot(X,w) + b
-	
-	f_wb = g(z)
+	m = y.shape[0]
     
-	reg = (lambda_/(2*m)) * np.dot(w,w) #regularisation term 
-    
-	cost =  ((1/m) * np.sum( -y*np.log(f_wb) - (1-y)*np.log(1-f_wb) )) + reg
+	cost =  ((1/m) * np.sum( -y[0]*np.log(AL) - (1-y[0])*np.log(1-AL) ))
              
 	cost /= m
     
 	return cost
-
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Calculate gradient with regularisation
@@ -102,7 +96,7 @@ def gradient_descent(X, y, w_in, b_in, alpha, n, g, lambda_=0):
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Computes layer of NN, equivalent to Dense function in Tensorflow
 def my_dense(a_in, W, b, g):
-                                        
+
 	z = np.dot(a_in,W) + b
 	
 	a_out = g(z)
@@ -112,7 +106,7 @@ def my_dense(a_in, W, b, g):
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Carries out forward propagation
-def forward_prop(x_train, params):
+def forward_prop(X, params):
 
 	'''
 	arguments:
@@ -125,7 +119,7 @@ def forward_prop(x_train, params):
 	'''
 
 	outputs = [] 
-	A = x_train 
+	A = X 
 
 	L = len(params) // 2 #this is the number of layers of the NN (divided by 2 as the dictionary contains both weights and biases
 	
@@ -135,22 +129,22 @@ def forward_prop(x_train, params):
 		W = params["W" + str(l)] #for the first layers calls W1, the second layer W2 etc...
 		b = params["b" + str(l)]
 
-		Z = np.dot(W, A_prev) + b
+		Z = np.dot(A_prev, W) + b
 		A = relu(Z) #use relu for all layers other than final
     
 		output = (A_prev, W, b, Z)
 		outputs.append(output)
 
 	#For the final layer:
-	AL = np.dot(parameters['W' + str(L)], A) + parameters['b' + str(L)] #linear activation for final layer
-	output = (A, parameters['W' + str(L)], parameters['b' + str(L)], AL)
+	AL = np.dot(A, params['W' + str(L)]) + params['b' + str(L)] #linear activation for final layer
+	output = (A, params['W' + str(L)], params['b' + str(L)], AL)
 	outputs.append(output)
 
 	return AL, outputs
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Carries out backward propagation
-def backward_prop(AL, y_train, outputs):
+def backward_prop(AL, y, outputs):
 
 	'''
 	arguments:
@@ -166,26 +160,66 @@ def backward_prop(AL, y_train, outputs):
 	L = len(outputs) #this is the number of layers
 
 	#Initialisation of back prop
-	dAL = -(np.divide(Y, AL) - np.divide(1 - Y, 1 - AL))
+	dAL = -(np.divide(y[0], AL) - np.divide(1 - y[0], 1 - AL))
 
 	#Back prop for the final layer (linear activation)
 	dZL = dAL
 	A_prev, W, b, Z = outputs[L - 1]
 
-	grads['dW' + str(L)] = np.dot(dZL, A_prev.T) / m
-	grads['db' + str(L)] = np.sum(dZL, axis=1, keepdims=True) / m
+	grads['dW' + str(L)] = (np.dot(dZL.T, A_prev) / m).T
+	grads['db' + str(L)] = np.sum(dZL, axis=0, keepdims=True) / m
 
-	dA_prev = np.dot(W.T, dZL)
+	dA_prev = np.dot(dZL, W.T)
 	
 	#Back prop for the oher layers
 	for l in reversed(range(L - 1)):
 
 		A_prev, W, b, Z = outputs[l]
-		dZ = relu_backward(dA_prev, Z)
+		dZ = copy.deepcopy(dA_prev) #avoid modifying global dA within function
+		dZ [Z <= 0]	#set gradients to 0 where Z <= 0 for the relu derivative
 
-		grads['dW' + str(l + 1)] = np.dot(dZ, A_prev.T) / m
-		grads['db' + str(l + 1)] = np.sum(dZ, axis=1, keepdims=True) / m
+		grads['dW' + str(l + 1)] = (np.dot(dZ.T, A_prev) / m).T
+		grads['db' + str(l + 1)] = np.sum(dZ, axis=0, keepdims=True) / m
 
-		dA_prev = np.dot(W.T, dZ)
+		dA_prev = np.dot(dZ, W.T)
 
 	return grads
+
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Update parameters using the learning rate and gradients
+def update_params(params, grads, alpha):
+	'''
+	arguments:
+	params - dictionary of parameters W1 ... Wn and b1 ... bn (weights and biases)
+	grads - gradients
+	alpha - learning rate
+
+	returns:
+	The updated parameters
+	'''
+	L = len(params) // 2
+
+	for l in range(1, L):
+
+		params["W" + str(l)] -= alpha * grads["dW" + str(l)] #for the first layers calls W1, the second layer W2 etc...
+		params["b" + str(l)] -= alpha * grads["db" + str(l)][0]
+
+	return params
+
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+##Train the neural network
+def train_nn(X, y, params, alpha, n):
+
+	for i in range(n):
+
+		print ("Iteration: " + str(i) + "/" + str(n))
+		
+		AL, outputs = forward_prop(X, params)
+		cost = cost_log(AL, y)
+		print ("cost:", cost)
+
+		grads = backward_prop(AL, y, outputs)
+		params = update_params(params, grads, alpha)
+
+	return params
+		
