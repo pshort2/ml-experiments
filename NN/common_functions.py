@@ -52,8 +52,8 @@ def relu_derivative(z):
 #softmax function
 def softmax(z):  
      
-	norm_z = z - np.max(z)	
-	a = np.exp(norm_z)/np.sum(np.exp(norm_z))
+	#norm_z = z - np.max(z)	
+	a = np.exp(z)/np.sum(np.exp(z))
     
 	return a
 
@@ -63,8 +63,6 @@ def cost_log(AL, W, y, lambda_):
 
 	m = y.shape[0]
 	epsilon = 1e-8 #small offset to avoid issues if AL=0
-
-	print (np.where(AL == 0)[0])
 
 	cost =  ((1/m) * np.sum( -y*np.log(AL + epsilon) - (1-y)*np.log(1 - AL + epsilon))) + (lambda_ / (2 * m)) * np.sum(np.square(W))
              
@@ -103,7 +101,7 @@ def forward_prop(X, params):
 	L = len(params) // 2 #this is the number of layers of the NN (divided by 2 as the dictionary contains both weights and biases
 	
 	for l in range(1, L):
-
+		
 		A_prev = A #Store the previous activation
 		W = params["W" + str(l)] #for the first layers calls W1, the second layer W2 etc...
 		b = params["b" + str(l)]
@@ -120,6 +118,7 @@ def forward_prop(X, params):
 	output = (A, params['W' + str(L)], params['b' + str(L)], AL)
 	outputs.append(output)
 
+	print (AL[0])
 	return AL, outputs
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -198,14 +197,43 @@ def train_nn(X, y, params, alpha, n, lambda_):
 		
 		L = len(params) // 2
 		cost = cost_log(AL, params["W" + str(L)], y, lambda_)
-		print ("cost:", cost)
+		#print ("cost:", cost)
 
 		grads = backward_prop(AL, y, outputs, lambda_)
+		print (grads)
 		params = update_params(params, grads, alpha)
 
 	return params
 
 
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Clip gradient to avoid gradients exploding
+def clip_gradients(grads, threshold):
+    """
+    Clips gradients to prevent their magnitude from exceeding the threshold.
+    
+    Arguments:
+    grads -- dictionary of gradients
+    threshold -- maximum allowed L2 norm of gradients
+    
+    Returns:
+    clipped_grads -- dictionary of clipped gradients
+    """
+    clipped_grads = {}
+    
+    # Calculate the L2 norm of the gradients
+    grad_norm = np.linalg.norm([grad for grad in grads.values()])
+    
+    # Check if the L2 norm exceeds the threshold
+    if grad_norm > threshold:
+        # Rescale the gradients to bring them within the desired range
+        scale = threshold / grad_norm
+        for key, grad in grads.items():
+            clipped_grads[key] = grad * scale
+    else:
+        clipped_grads = grads
+    
+    return clipped_grads
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Calculate gradient with regularisation
 def gradient(X, y, w, b, g, lambda_=0): 
